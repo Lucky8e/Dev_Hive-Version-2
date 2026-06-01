@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url= env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  username      String         @unique
+  password      String
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  likes         Like[]
+  refreshTokens RefreshToken[]
+  snippets      Snippet[]
+}
+
+model Snippet {
+  id         String   @id @default(cuid())
+  title      String
+  code       String
+  language   String
+  isPublic   Boolean  @default(false)
+  shortCode  String   @unique
+  forkedFrom String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String
+  likes      Like[]
+  reviews    Review[]
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  snippetId String
+  createdAt DateTime @default(now())
+  snippet   Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, snippetId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  content   String
+  snippetId String
+  createdAt DateTime @default(now())
+  snippet   Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+}
