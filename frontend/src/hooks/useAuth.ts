@@ -26,6 +26,7 @@ export const useAuth = () => {
 
     if (!token) {
       setState({ user: null, isAuthenticated: false, isLoading: false });
+      return;
     }
 
     try {
@@ -41,12 +42,12 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    fetchCurrentUser;
+    fetchCurrentUser();
   }, [fetchCurrentUser]);
 
-  const login = async (username: string, email: string) => {
+  const login = async (email: string, password: string) => {
     const { data } = await apiClient.post("/users/loginUser", {
-      username,
+      password,
       email
     });
     const { accessToken, user } = data.data;

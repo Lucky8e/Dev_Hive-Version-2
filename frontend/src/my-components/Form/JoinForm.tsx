@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createRoom, getRoomByCode, joinRoom } from "@/lib/roomService";
 import { Hash, User } from "lucide-react";
-import { nanoid } from "nanoid";
 import { Black_Ops_One } from "next/font/google";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 interface JoinFormProps {
   onJoin: (user: UserData, room: Room) => void;
@@ -27,21 +28,32 @@ const blackOps = Black_Ops_One({
 });
 
 const JoinForm = ({ onJoin }: JoinFormProps) => {
-  const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Only redirect after auth has finished loading
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  // Show nothing while auth is being checked
+  if (isLoading) return null;
+
+  // Show nothing if not authenticated (redirect is in flight)
+  if (!isAuthenticated || !user) return null;
   //-------------------------------------------------handleCreateRoom-------------------------------------------------------//
   const handleCreateRoom = async () => {
-    if (!name.trim()) {
-      toast.warning("Please enter you name");
+    if (!user) {
       return;
     }
     setLoading(true);
 
     try {
-      const userId = nanoid(5);
-
       //Create the room
       const roomResult = await createRoom();
       if (!roomResult.success || !roomResult.room) {
@@ -51,21 +63,21 @@ const JoinForm = ({ onJoin }: JoinFormProps) => {
       //join the room
       const joinResult = await joinRoom({
         roomId: roomResult.room.id,
-        userId: userId,
-        userName: name.trim()
+        userId: user.id,
+        userName: user.username
       });
       if (!joinResult.success) {
         toast("Failed to join the room");
         return;
       }
 
-      Cookies.set("userId", userId, { expires: 1 });
-      Cookies.set("userName", name.trim(), { expires: 1 });
+      Cookies.set("userId", user.id, { expires: 1 });
+      Cookies.set("userName", user.username, { expires: 1 });
       Cookies.set("roomCode", roomResult.room.code, { expires: 1 });
       Cookies.set("roomId", roomResult.room.id, { expires: 1 });
 
       onJoin(
-        { id: userId, name: name.trim() },
+        { id: user.id, name: user.username },
         { id: roomResult.room.id, code: roomResult.room.code }
       );
     } catch (error) {
@@ -77,8 +89,7 @@ const JoinForm = ({ onJoin }: JoinFormProps) => {
 
   //-------------------------------------------------handleCreateRoom-------------------------------------------------------//
   const handleJoinRoom = async () => {
-    if (!name.trim()) {
-      toast.warning("Please enter the name");
+    if (!user) {
       return;
     }
     if (!roomCode.trim()) {
@@ -88,7 +99,6 @@ const JoinForm = ({ onJoin }: JoinFormProps) => {
     setLoading(true);
 
     try {
-      const userId = nanoid(5);
       //check if room exist
       const roomResult = await getRoomByCode({ roomCode: roomCode });
       if (!roomResult.success || !roomResult.room) {
@@ -97,20 +107,20 @@ const JoinForm = ({ onJoin }: JoinFormProps) => {
       }
       const joinResult = await joinRoom({
         roomId: roomResult.room.id,
-        userId: userId,
-        userName: name
+        userId: user.id,
+        userName: user.username
       });
       if (!joinResult.success) {
         toast.warning("Failed to join room");
         return;
       }
-      Cookies.set("userId", userId, { expires: 1 });
-      Cookies.set("userName", name.trim(), { expires: 1 });
+      Cookies.set("userId", user.id, { expires: 1 });
+      Cookies.set("userName", user.username, { expires: 1 });
       Cookies.set("roomCode", roomResult.room.code, { expires: 1 });
       Cookies.set("roomId", roomResult.room.id, { expires: 1 });
 
       onJoin(
-        { id: userId, name: name.trim() },
+        { id: user.id, name: user.username },
         { id: roomResult.room.id, code: roomResult.room.code }
       );
     } catch (error) {
@@ -159,8 +169,7 @@ const JoinForm = ({ onJoin }: JoinFormProps) => {
               <Input
                 type="text"
                 placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={user.username}
                 className="w-full h-14 pl-10 text-foreground "
               />
             </div>
