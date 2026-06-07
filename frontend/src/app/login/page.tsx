@@ -20,13 +20,6 @@ const LoginPage = () => {
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
 
-  // redirect when auth state updates
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/join-room");
-    }
-  }, [isAuthenticated]);
-
   const handleLogin = async () => {
     if (!email || !password) {
       toast("Email and Password is required to sign in");
@@ -36,6 +29,7 @@ const LoginPage = () => {
     try {
       await login(email, password);
       toast.success("Logged in successfully");
+      router.replace("/join-room");
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || "Invalid credentials");

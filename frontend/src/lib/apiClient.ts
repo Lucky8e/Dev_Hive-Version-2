@@ -1,5 +1,4 @@
 import axios from "axios";
-import { error } from "console";
 import Cookies from "js-cookie";
 
 const apiClient = axios.create({
@@ -19,16 +18,23 @@ apiClient.interceptors.request.use((config) => {
 //refresh accessToken when expired
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const original = error.config;
+  async (err) => {
+    const original = err.config;
 
-    if (error.response?.status === 401 && !original._retry) {
+    if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
 
       try {
-        const { data } = await apiClient.post("/users/refresh");
+        const { data } = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/users/refresh`,
+          {},
+          { withCredentials: true }
+        );
         const newToken = data.data.accessToken;
-        Cookies.set("accessToken", newToken, { expires: 1 / 96 });
+        const isProd = process.env.NODE_ENV === "production";
+        Cookies.set("accessToken", newToken, {
+          expires: isProd ? 1 / 96 : 1 // 15 mins in prod, 1 day in dev
+        });
         original.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(original);
       } catch (error) {
@@ -37,7 +43,7 @@ apiClient.interceptors.response.use(
         window.location.href = "/login";
       }
     }
-    return Promise.reject(error);
+    return Promise.reject(err);
   }
 );
 

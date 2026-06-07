@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
-import apiClient from "@/lib/apiClient";
 import { Black_Ops_One } from "next/font/google";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,8 +19,10 @@ const RegisterPage = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const { register } = useAuth();
   const router = useRouter();
+
   const handleRegistration = async () => {
     if (!email || !userName || !password) {
       toast.error("Username, email and password is required");
@@ -30,9 +31,9 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      await register(userName, email, password);
+      await register(userName.trim(), email.trim(), password.trim());
       toast.success("Registration Successfully");
-      router.push("/join-room");
+      router.replace("/join-room");
     } catch (error: any) {
       console.log(error);
       toast.error(
@@ -107,19 +108,19 @@ const RegisterPage = () => {
           </div>
 
           <Button
-            className="w-full hover:bg-purple-400 h-12"
+            className={`w-full hover:bg-purple-400 h-12`}
             onClick={handleRegistration}
             disabled={isLoading}
           >
-            Register
+            {isLoading ? "Creating Account...." : "Register"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Already have an account?{" "}
             <Link
               href="/login"
               className="text-purple-400 hover:underline font-medium"
             >
-              Register
+              Login
             </Link>
           </p>
         </div>

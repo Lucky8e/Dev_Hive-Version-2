@@ -15,11 +15,19 @@ import Cookies from "js-cookie";
 import { useParams, useRouter } from "next/navigation";
 import ChatComponent from "@/my-components/Editor/ChatComponent";
 import { Button } from "@/components/ui/button";
-import { Copy, Folder, LogOut, ScanEye, SquareTerminal } from "lucide-react";
+import {
+  Copy,
+  Divide,
+  Folder,
+  LogOut,
+  ScanEye,
+  SquareTerminal
+} from "lucide-react";
 import { toast } from "sonner";
 import { Separator as ShadSeparator } from "@/components/ui/separator";
 import { markUsersInactive } from "@/lib/userPresenceService";
 import FileExplorer from "@/my-components/Editor/FileExplorer";
+import apiClient from "@/lib/apiClient";
 const PreviewPanel = dynamic(
   () => import("@/my-components/Editor/PreviewPanel"),
   { ssr: false }
@@ -63,6 +71,11 @@ export default function WorkspaceIdPage() {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [language, setLanguage] = useState("javascript");
+
+  /* Review states */
+  const [showReview, setShowReview] = useState<boolean>(false);
+  const [reviewContent, setReviewContent] = useState<string>("");
+  const [isReviewing, setIsReviewing] = useState<boolean>(false);
 
   //sandPack setup
   const [centreTab, setCenterTab] = useState<"project" | "editor" | "preview">(
@@ -164,6 +177,61 @@ export default function WorkspaceIdPage() {
 
     router.push("/join-room");
   };
+
+  /* handleReview function */
+  const handleReview = async () => {
+    const currentCode = editorRef?.current?.getValue() ?? "";
+    if (!currentCode.trim()) {
+      toast.warning("No code to review");
+      return;
+    }
+    setShowReview(true);
+    setIsReviewing(true);
+    setReviewContent("");
+
+    try {
+      const token = Cookies.get("accessToken");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/reviews/stream`,
+        {
+          method: "Post",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ code: currentCode, language })
+        }
+      );
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data :")) {
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              if (parsed.text) {
+                setReviewContent((prev) => prev + parsed);
+              }
+              if (parsed.done) {
+                setIsReviewing(false);
+              }
+            } catch (error) {}
+          }
+        }
+      }
+    } catch (error) {
+      toast.error("AI review failed!!!");
+      setIsReviewing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen w-full">
       <div className="h-16">
@@ -175,6 +243,8 @@ export default function WorkspaceIdPage() {
             userName={userName}
             language={language}
             setLanguage={setLanguage}
+            code={editorRef.current?.getValue() ?? ""}
+            onReviewClick={handleReview}
           />
         )}
         {/* --------------------Below Navbar content-----------------*/}
@@ -347,15 +417,68 @@ export default function WorkspaceIdPage() {
           </Group>
         </div>
 
-        {/*-------------------- Chat Section------------------- */}
-        <div className="w-100">
-          {roomId && userId && userName && (
-            <ChatComponent
-              roomId={roomId}
-              userId={userId}
-              userName={userName}
-            />
-          )}
+        {/*-------------------- Chat and AI Review Section------------------- */}
+        <div className="w-100 flex flex-col">
+          {/* --Tab Switcher */}
+          <div className="flex border-b border-slate-700">
+            <button
+              onClick={() => setShowReview(false)}
+              className={`flex-1 px-4 py-2 text-xs font-medium transition-colors
+              ${
+                !showReview
+                  ? "bg-primary/20 text-primary border-b-2 border-b-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }
+              `}
+            >
+              Live Chat
+            </button>
+            <button
+              onClick={() => setShowReview(true)}
+              className={`flex-1 px-4 py-2 text-xs font-medium transition-colors
+              ${
+                showReview
+                  ? "bg-primary/20 text-primary border-b-2 border-b-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }
+              `}
+            >
+              AI Review
+            </button>
+          </div>
+          {/* chat section */}
+          <div className={`flex-1 ${showReview ? "hidden" : "block"}`}>
+            {roomId && userId && userName && (
+              <ChatComponent
+                roomId={roomId}
+                userId={userId}
+                userName={userName}
+              />
+            )}
+          </div>
+          {/* ai review section */}
+          <div
+            className={`flex-1 overflow-y-auto p-4 ${showReview ? "block" : "hidden"}`}
+          >
+            {!reviewContent && !isReviewing && (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+                <p className="text-sm text-center">
+                  {" "}
+                  Click "AI Review" in the navbar to get feedback on your code
+                </p>
+              </div>
+            )}
+            {isReviewing && !reviewContent && (
+              <div className="flex items-center text-blue-500 text-sm">
+                <span className="animate-pulse">Analyzing your code....</span>
+              </div>
+            )}
+            {reviewContent && (
+              <div className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                {reviewContent}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

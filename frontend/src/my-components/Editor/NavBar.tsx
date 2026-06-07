@@ -1,6 +1,6 @@
 "use client";
 import { Black_Ops_One } from "next/font/google";
-import { ChevronDown, Download, Play } from "lucide-react";
+import { Bot, ChevronDown, Download, Play, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenuTrigger,
@@ -8,11 +8,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import { ModeToggle } from "@/components/ui/ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createAvatar } from "@dicebear/core";
 import { openPeeps } from "@dicebear/collection";
+import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { toast } from "sonner";
+import apiClient from "@/lib/apiClient";
 
 const blackOps = Black_Ops_One({
   subsets: ["latin"],
@@ -26,6 +29,8 @@ type OnRunProps = {
   userName: string;
   language: string;
   setLanguage: (language: string) => void;
+  code: string;
+  onReviewClick: () => void;
 };
 
 const NavBar = ({
@@ -34,11 +39,37 @@ const NavBar = ({
   userId,
   userName,
   language,
-  setLanguage
+  setLanguage,
+  code,
+  onReviewClick
 }: OnRunProps) => {
   const avatarUrl = createAvatar(openPeeps, {
     seed: userId
   }).toDataUri();
+
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveSnippet = async () => {
+    if (!code.trim()) {
+      toast("No code to save editor is empty!!");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await apiClient.post("/snippet", {
+        title: `${language}-snippet -${new Date().toLocaleDateString()}`,
+        code,
+        language,
+        isPublic: false
+      });
+      toast.success("Snippet saved successfully");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   return (
     <div
       className="fixed top-0 left-1/2 -translate-x-1/2 w-full  
@@ -112,11 +143,27 @@ const NavBar = ({
         </div>
         {/* ---------------Right-Section-{Share,Download,Settings,UserAvatar}------------------------ */}
         <div className="flex items-center gap-2 justify-center">
+          {/* SNIPPET SAVE BUTTON */}
           <Button
-            /* className=" bg-linear-to-r from-orange-800 via-orange-600 to-orange-800" */ variant={
-              "outline"
-            }
+            onClick={handleSaveSnippet}
+            disabled={isSaving}
+            variant={"outline"}
+            className="border-purple-500 text-purple-400 hover:bg-purple-500/10"
           >
+            <Save className="size-4" strokeWidth={3} />
+            <span className="text-xs">{isSaving ? "Saving..." : "Save"}</span>
+          </Button>
+
+          {/* AI Review */}
+          <Button
+            onClick={onReviewClick}
+            variant="outline"
+            className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
+          >
+            <Bot className="size-4" strokeWidth={3} />
+            <span className="text-xs">AI Review</span>
+          </Button>
+          <Button variant={"outline"}>
             <span className="text-xs">Download Code</span>
             <Download className="size-4" strokeWidth={3} />
           </Button>

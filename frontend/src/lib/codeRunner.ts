@@ -1,78 +1,55 @@
-/* const Language_Map: Record<string, { language: string; version: string }> = {
-  javascript: { language: "javascript", version: "*" },
-  typescript: { language: "typescript", version: "*" },
-  html: { language: "html", version: "*" },
-  css: { language: "css", version: "*" },
-  java: { language: "java", version: "*" }
-};
+// import apiClient from "./apiClient";
 
-export const runCode = async (
-  code: string,
-  language: string
-): Promise<{
-  output: string;
-  error: string | null;
-}> => {
+// export const runCode = async (code: string, language: string) => {
+//   try {
+//     const { data } = await apiClient.post("/execute/run");
+//     return {
+//       output: data.data.stdout || "",
+//       error: data.data.stderr || ""
+//     };
+//   } catch (error: any) {
+//     return {
+//       output: "",
+//       error: `Failed to execute: ${error?.response?.data?.message}`
+//     };
+//   }
+// };
+
+import Cookies from "js-cookie";
+
+export const runCode = async (code: string, language: string) => {
   try {
-    const lang = Language_Map[language];
-    if (!lang) {
-      return {
-        output: "",
-        error: `${language} is not supported yet please wait`
-      };
-    }
-    const response = await fetch("https://api.piston.rs/api/v2/execute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        language: lang.language,
-        version: lang.version,
-        files: [{ content: code }]
-      })
-    });
+    const token = Cookies.get("accessToken");
+    console.log("TOKEN BEING SENT:", token);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/execute/run`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ code, language })
+      }
+    );
+
+    const data = await response.json();
+
     if (!response.ok) {
       return {
         output: "",
-        error: `Piston error: ${response.status}`
+        error: data.message || "Execution failed"
       };
     }
-    const data = await response.json();
-    const stdout = data.run?.stdout ?? "";
-    const stderr = data.run?.stderr ?? "";
+
     return {
-      output: stdout || "",
-      error: stderr || ""
+      output: data.data.stdout || "",
+      error: data.data.stderr || ""
     };
   } catch (error: any) {
     return {
       output: "",
-      error: `Failed to execute the code: ${error}`
-    };
-  }
-};
- */
-
-export const runCode = async (
-  code: string,
-  language: string
-): Promise<{ output: string; error: string | null }> => {
-  try {
-    console.log(language, code);
-    const response = await fetch("/api/execute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, language })
-    });
-
-    const data = await response.json();
-    return {
-      output: data.output ?? "",
-      error: data.error ?? null
-    };
-  } catch (error: any) {
-    return {
-      output: "",
-      error: `Failed to execute: ${error.message}`
+      error: "Failed to connect to execution server"
     };
   }
 };
