@@ -169,7 +169,7 @@ const JoinForm = ({ onJoin }: JoinFormProps) => {
               <Input
                 type="text"
                 placeholder="Enter your name"
-                value={user.username}
+                defaultValue={user.username}
                 className="w-full h-14 pl-10 text-foreground "
               />
             </div>

@@ -65,11 +65,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email,
       password
     });
-    const { accessToken, user } = data.data;
-    const isProd = process.env.NODE_ENV === "production";
-    Cookies.set("accessToken", accessToken, {
-      expires: isProd ? 1 / 96 : 1 // 15 mins in prod, 1 day in dev
-    });
+    const { user } = data.data;
+
+    console.log("SET COOKIE:", Cookies.get("accessToken"));
+    console.log("ALL COOKIES:", document.cookie);
     setState({
       user,
       isAuthenticated: true,
@@ -87,11 +86,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email,
       password
     });
-    const { accessToken, user } = data.data;
-    const isProd = process.env.NODE_ENV === "production";
-    Cookies.set("accessToken", accessToken, {
-      expires: isProd ? 1 / 96 : 1 // 15 mins in prod, 1 day in dev
-    });
+    const { user } = data.data;
+
     setState({
       user,
       isAuthenticated: true,
@@ -102,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     await apiClient.post("/users/logoutUser");
-    Cookies.remove("accessToken");
+
     setState({ user: null, isAuthenticated: false, isLoading: false });
   };
 
