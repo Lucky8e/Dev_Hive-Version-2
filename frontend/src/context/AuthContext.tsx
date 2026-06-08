@@ -39,6 +39,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchCurrentUser = useCallback(async () => {
     const token = Cookies.get("accessToken");
 
+    console.log("FETCH CURRENT USER - token:", token);
+    console.log("ALL COOKIES:", document.cookie);
+
     if (!token) {
       setState({ user: null, isAuthenticated: false, isLoading: false });
       return;

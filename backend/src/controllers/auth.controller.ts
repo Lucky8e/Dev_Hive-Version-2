@@ -85,7 +85,7 @@ const registerUser = asyncHandler(
       })
       .cookie("accessToken", accessToken, {
         ...accessTokenCookieOptions,
-        maxAge: 15 * 60 * 1000
+        maxAge: 24 * 60 * 60 * 1000 // 24h for dev
       })
       .json(
         new ApiResponse(
@@ -138,7 +138,7 @@ const loginUser = asyncHandler(
       })
       .cookie("accessToken", accessToken, {
         ...accessTokenCookieOptions,
-        maxAge: 15 * 60 * 1000
+        maxAge: 24 * 60 * 60 * 1000 // 24h for dev
       })
       .json(
         new ApiResponse(
@@ -196,7 +196,7 @@ const refresh = asyncHandler(async (req, res) => {
     })
     .cookie("accessToken", accessToken, {
       ...accessTokenCookieOptions,
-      maxAge: 15 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000 // 24h for dev
     })
     .json(
       new ApiResponse(200, { accessToken }, "Tokens refreshed successfully")
